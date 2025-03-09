@@ -81,7 +81,7 @@ params:
     summaries_interval_sec_max: 300
 
     player:
-      #render: True
+      render: True
       deterministic: False  # be careful there's a typo in older versions of rl_games in this parameter name ("determenistic")
       games_num: 100000
       print_stats: False

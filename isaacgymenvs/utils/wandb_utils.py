@@ -29,13 +29,14 @@ class WandbAlgoObserver(AlgoObserver):
         def init_wandb():
             wandb.init(
                 project=cfg.wandb_project,
-                entity=cfg.wandb_entity,
-                group=cfg.wandb_group,
+                # entity=cfg.wandb_entity,
+                # group=cfg.wandb_group,
                 tags=cfg.wandb_tags,
                 sync_tensorboard=True,
+                monitor_gym=True,
                 id=wandb_unique_id,
                 name=experiment_name,
-                resume=True,
+                resume=False,
                 settings=wandb.Settings(start_method='fork'),
             )
        

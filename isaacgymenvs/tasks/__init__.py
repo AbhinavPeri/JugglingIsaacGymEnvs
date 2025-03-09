@@ -50,6 +50,7 @@ from .trifinger import Trifinger
 from .allegro_kuka.allegro_kuka_reorientation import AllegroKukaReorientation
 from .allegro_kuka.allegro_kuka_regrasping import AllegroKukaRegrasping
 from .allegro_kuka.allegro_kuka_throw import AllegroKukaThrow
+from .allegro_kuka.allegro_kuka_juggle import AllegroKukaJuggle
 from .allegro_kuka.allegro_kuka_two_arms_regrasping import AllegroKukaTwoArmsRegrasping
 from .allegro_kuka.allegro_kuka_two_arms_reorientation import AllegroKukaTwoArmsReorientation
 
@@ -63,6 +64,7 @@ def resolve_allegro_kuka(cfg, *args, **kwargs):
         reorientation=AllegroKukaReorientation,
         throw=AllegroKukaThrow,
         regrasping=AllegroKukaRegrasping,
+        juggle=AllegroKukaJuggle,
     )
 
     if subtask_name not in subtask_map:
