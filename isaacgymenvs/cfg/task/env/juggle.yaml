@@ -1,3 +1,8 @@
 subtask: "juggle"
 
 episodeLength: 300
+
+forceScale: 0.0  # random forces don't allow us to throw precisely so we turn them off
+
+# adds a small pause every time we hit a target
+successSteps: 5
