@@ -81,7 +81,7 @@ class AllegroKukaJuggle(AllegroKukaBase):
         rand_pos_floats = torch_rand_float(0.0, 1.0, (len(env_ids), 3), device=self.device)
         target_coords = target_volume_min_coord + rand_pos_floats * target_volume_size
         self.goal_states[env_ids, 0:3] = target_coords
-        self.goal_states[env_ids, 3] = 3.0
+        self.goal_states[env_ids, 3] = 6.0
 
         self.root_state_tensor[self.goal_object_indices[env_ids], 0:3] = self.goal_states[env_ids, 0:3]
 
