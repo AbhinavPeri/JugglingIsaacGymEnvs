@@ -28,6 +28,8 @@ handHeightPenaltyScale: 100.0
 fallPenaltyScale: 5.0
 outOfBoundsPenaltyScale: 15.0
 hasThrownRewardScale: 20.0 #TODO: return back to reorder
+hasCaughtRewardScale: 20.0
+catchHeightRewardScale: 20.0
 
 numBalls: 1
 juggleMinHeight: 0.6
@@ -36,6 +38,7 @@ handMaxHeight: 1.1
 envSpacing: 1.5
 
 hasThrownThreshold: 0.1 #for thrown signal
+hasCaughtThreshold: 0.1
 
 
 # Done:	Make Juggle Height Reward One Time
