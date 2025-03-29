@@ -1290,10 +1290,10 @@ class AllegroKukaJuggleBase(VecTask):
 
         self.prev_has_thrown = self.has_thrown
         # self.has_thrown = (((self.fingertip_pos_rel_object[:, :, 0]).float() > self.has_thrown_threshold) & (self.object_linvel[:, :, 2] >= 0)).float()
-        self.has_thrown = ((-self.fingertip_pos_rel_object[:, :, :, 2] > self.has_thrown_threshold).all(dim=-1) & (self.object_linvel[:, :, 2] >= 0)).float()
+        self.has_thrown = ((-self.fingertip_pos_rel_object[:, :, :, 2] > self.has_thrown_threshold).all(dim=-1) & (self.object_linvel[:, :, 2] > 0.05)).float()
 
         self.prev_has_caught = self.has_caught
-        self.has_caught = ((torch.norm(self.fingertip_pos_rel_object[:, :, :, :], dim=-1) < self.has_caught_threshold).all(dim=-1) & (self.object_linvel[:, :, 2] <= 0)).float()
+        self.has_caught = ((torch.norm(self.fingertip_pos_rel_object[:, :, :, :], dim=-1) < self.has_caught_threshold).all(dim=-1) & (self.object_linvel[:, :, 2] < -0.05)).float()
 
         self.catch_deltas = torch.where(((self.has_thrown == 1) & (self.prev_has_thrown == 0))[:, :, None], torch.zeros_like(self.catch_deltas), self.catch_deltas)
         self.catch_deltas[:, :, 0] = self.catch_deltas[:, :, 0] + torch.clip(self.object_linvel[:, :, 2], 0.0)
