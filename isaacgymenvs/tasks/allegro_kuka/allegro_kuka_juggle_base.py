@@ -1512,6 +1512,7 @@ class AllegroKukaJuggleBase(VecTask):
         # since we reset the object, we also should update distances between fingers and the object
         self.closest_fingertip_dist[env_ids] = -1
         self.furthest_hand_dist[env_ids] = -1
+        self.catch_deltas[env_ids] = 0
 
     def deferred_set_actor_root_state_tensor_indexed(self, obj_indices: List[Tensor]) -> None:
         self.set_actor_root_state_object_indices.extend(obj_indices)
