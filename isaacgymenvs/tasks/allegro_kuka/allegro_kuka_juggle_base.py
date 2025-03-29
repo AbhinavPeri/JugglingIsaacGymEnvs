@@ -35,6 +35,7 @@ from copy import copy
 from os.path import join
 from typing import List, Tuple
 
+import torch
 from isaacgym import gymapi, gymtorch, gymutil
 from torch import Tensor
 
@@ -221,8 +222,8 @@ class AllegroKukaJuggleBase(VecTask):
         juggle_state_size = 1 * self.num_balls
         closest_fingertip_distance_size = self.num_allegro_fingertips * self.num_balls
         reward_obs_size = 1
-        has_thrown_size = 2 * 1 * self.num_balls #has thrown and prev has thrown
-        has_caught_size = 2 * 1 * self.num_balls
+        has_thrown_size = 1 * self.num_balls #has thrown and prev has thrown
+        has_caught_size = 1 * self.num_balls
         catch_deltas_size = 2 * self.num_balls
 
         self.full_state_size = (
@@ -350,10 +351,12 @@ class AllegroKukaJuggleBase(VecTask):
         self.prev_juggle_state = torch.zeros_like(self.juggle_state)
 
         self.has_thrown = torch.zeros(self.num_envs, self.num_balls, dtype=torch.float, device=self.device)
-        self.prev_has_thrown = torch.zeros_like(self.has_thrown)
+        self.prev_beyond_throw_thresh = torch.zeros_like(self.has_thrown).bool()
+        self.beyond_throw_thresh = torch.zeros_like(self.has_thrown).bool()
 
         self.has_caught = torch.zeros(self.num_envs, self.num_balls, dtype=torch.float, device=self.device)
-        self.prev_has_caught = torch.zeros_like(self.has_caught)
+        self.prev_within_catch_thresh = torch.zeros_like(self.has_caught).bool()
+        self.within_catch_thresh = torch.zeros_like(self.has_caught).bool()
 
         self.catch_deltas = torch.zeros(self.num_envs, self.num_balls, 2, dtype=torch.float, device=self.device)
 
@@ -1019,15 +1022,15 @@ class AllegroKukaJuggleBase(VecTask):
         juggle_reward = ((self.juggle_state == 0) & (self.prev_juggle_state == 1)).sum(dim=1).float()
 
         #new throw signal (positive velocity + change in delta)
-        has_thrown_reward = ((self.has_thrown == 1) & (self.prev_has_thrown == 0)).sum(dim=1).float()
+        has_thrown_reward = self.has_thrown.sum(dim=1).float()
 
-        has_caught_reward = ((self.has_caught == 1) & (self.prev_has_caught == 0)).sum(dim=1).float()
+        has_caught_reward = self.has_caught.sum(dim=1).float()
 
-        catch_height_reward = (((self.has_caught == 1) & (self.prev_has_caught == 0)).float() * torch.abs(self.catch_deltas).min(dim=-1)[0]).sum(dim=-1)
+        catch_height_reward = (self.has_caught.float() * torch.abs(self.catch_deltas).min(dim=-1)[0]).sum(dim=-1)
         print("-" * 40)
-        print(f"Throw Indicators: Prev {self.prev_has_thrown[0, 0].item()}, Cur {self.has_thrown[0, 0].item()}")
+        print(f"Throw Indicators: Indicator {self.has_thrown[0, 0].item()}, Prev {self.prev_beyond_throw_thresh[0, 0].item()}, Cur {self.beyond_throw_thresh[0, 0].item()}")
         print(f"Fingertip Norm: {torch.norm(self.fingertip_pos_rel_object[0, 0, 0, :], dim=-1)}")
-        print(f"Caught Indicators: Prev {self.prev_has_caught[0, 0].item()}, Cur {self.has_caught[0, 0].item()}")
+        print(f"Caught Indicators: Indicator {self.has_caught[0, 0].item()}, Prev {self.prev_within_catch_thresh[0, 0].item()}, Cur {self.within_catch_thresh[0, 0].item()}")
         print(f"Catch Deltas: Positive Delta {self.catch_deltas[0, 0, 0].item()}, Negative Delta {self.catch_deltas[0, 0, 1].item()}")
         print(f"Rewards: Throw {has_thrown_reward[0]}, Caught {has_caught_reward[0]}, Catch Height {catch_height_reward[0]}")
         # downward toss reward
@@ -1293,15 +1296,16 @@ class AllegroKukaJuggleBase(VecTask):
         self.prev_juggle_state = self.juggle_state
         self.juggle_state = ((self.object_pose[:, :, 2] > self.juggle_success_height).float() - (self.object_pos[:, :, 2] < self.juggle_min_height).float())
 
-
-        self.prev_has_thrown = self.has_thrown
+        self.prev_beyond_throw_thresh = self.beyond_throw_thresh
+        self.beyond_throw_thresh = (-self.fingertip_pos_rel_object[:, :, :, 2] > self.has_thrown_threshold).all(dim=-1)
         # self.has_thrown = (((self.fingertip_pos_rel_object[:, :, 0]).float() > self.has_thrown_threshold) & (self.object_linvel[:, :, 2] >= 0)).float()
-        self.has_thrown = ((-self.fingertip_pos_rel_object[:, :, :, 2] > self.has_thrown_threshold).all(dim=-1) & (self.object_linvel[:, :, 2] > 0.05)).float()
+        self.has_thrown = (~self.prev_beyond_throw_thresh & self.beyond_throw_thresh & (self.object_linvel[:, :, 2] > 0.05)).float()
 
-        self.prev_has_caught = self.has_caught
-        self.has_caught = ((torch.norm(self.fingertip_pos_rel_object[:, :, :, :], dim=-1) < self.has_caught_threshold).all(dim=-1) & (self.object_linvel[:, :, 2] < -0.05)).float()
+        self.prev_within_catch_thresh = self.within_catch_thresh
+        self.within_catch_thresh = (torch.norm(self.fingertip_pos_rel_object[:, :, :, :], dim=-1) < self.has_caught_threshold).all(dim=-1)
+        self.has_caught = (~self.prev_within_catch_thresh & self.within_catch_thresh & (self.object_linvel[:, :, 2] < -0.05)).float()
 
-        self.catch_deltas = torch.where(((self.has_thrown == 1) & (self.prev_has_thrown == 0))[:, :, None], torch.zeros_like(self.catch_deltas), self.catch_deltas)
+        self.catch_deltas = torch.where(self.has_thrown[:, :, None].bool(), torch.zeros_like(self.catch_deltas), self.catch_deltas)
         self.catch_deltas[:, :, 0] = self.catch_deltas[:, :, 0] + torch.clip(self.object_linvel[:, :, 2], 0.0)
         self.catch_deltas[:, :, 1] = self.catch_deltas[:, :, 1] + torch.clip(self.object_linvel[:, :, 2], max=0.0)
 
@@ -1405,14 +1409,14 @@ class AllegroKukaJuggleBase(VecTask):
         buf[:, ofs : ofs + 1 * self.num_balls] = self.has_thrown.reshape(self.num_envs, -1)
         ofs += 1 * self.num_balls
 
-        buf[:, ofs : ofs + 1 * self.num_balls] = self.prev_has_thrown.reshape(self.num_envs, -1)
-        ofs += 1 * self.num_balls
+        # buf[:, ofs : ofs + 1 * self.num_balls] = self.prev_has_thrown.reshape(self.num_envs, -1)
+        # ofs += 1 * self.num_balls
 
         buf[:, ofs : ofs + 1 * self.num_balls] = self.has_caught.reshape(self.num_envs, -1)
         ofs += 1 * self.num_balls
 
-        buf[:, ofs : ofs + 1 * self.num_balls] = self.prev_has_caught.reshape(self.num_envs, -1)
-        ofs += 1 * self.num_balls
+        # buf[:, ofs : ofs + 1 * self.num_balls] = self.prev_has_caught.reshape(self.num_envs, -1)
+        # ofs += 1 * self.num_balls
 
         buf[:, ofs : ofs + 2 * self.num_balls] = self.catch_deltas.reshape(self.num_envs, -1)
         ofs += 2 * self.num_balls
