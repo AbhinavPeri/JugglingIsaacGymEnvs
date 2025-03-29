@@ -1026,6 +1026,7 @@ class AllegroKukaJuggleBase(VecTask):
         catch_height_reward = (((self.has_caught == 1) & (self.prev_has_caught == 0)).float() * torch.abs(self.catch_deltas).min(dim=-1)[0]).sum(dim=-1)
         print("-" * 40)
         print(f"Throw Indicators: Prev {self.prev_has_thrown[0, 0].item()}, Cur {self.has_thrown[0, 0].item()}")
+        print(f"Fingertip Norm: {torch.norm(self.fingertip_pos_rel_object[0, 0, 0, :], dim=-1)}")
         print(f"Caught Indicators: Prev {self.prev_has_caught[0, 0].item()}, Cur {self.has_caught[0, 0].item()}")
         print(f"Catch Deltas: Positive Delta {self.catch_deltas[0, 0, 0].item()}, Negative Delta {self.catch_deltas[0, 0, 1].item()}")
         print(f"Rewards: Throw {has_thrown_reward[0]}, Caught {has_caught_reward[0]}, Catch Height {catch_height_reward[0]}")
