@@ -4,6 +4,8 @@ Humans regularly learn and perform complex and nuanced motor skills, such as wal
 
 In this project, we leverage GPU-parallelized reinforcement learning in Isaac Gym to teach a robot hand-arm system with a human-like Allegro gripper to juggle objects—a task not commonly addressed in existing literature. We attempted juggling with up to three balls and achieved solid two-ball juggling performance, demonstrating sustained catches and throws. To support this, we designed a custom simulation environment with carefully crafted reward and state frameworks to scale and stabilize PPO, using domain-specific insights to iterate on control behavior, curriculum design, and reward sparsity. The result is a high-performing policy capable of executing multi-ball juggling in a physically realistic environment. This work demonstrates the feasibility of complex dexterous behaviors using standard RL algorithms, provided that environment engineering and parallel simulation are properly leveraged.
 
+Final Report is in the repo as a pdf.
+
 
 
 https://github.com/user-attachments/assets/0fe62941-21c3-473a-bd49-c808364fd6d2
